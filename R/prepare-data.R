@@ -220,7 +220,23 @@ prepare_data <- function(strata_data,
       dplyr::mutate(year_num = .data$year - min(.data$year) + 1)
 
   } else {
-    obs_ever <- dplyr::slice(obs, 0)
+    # No route recorded a non-zero count of this species anywhere within
+    # min_year-max_year. Previously this fell through to an empty data
+    # frame that never gets a `p_routes_ever` column, causing a confusing
+    # "can't rename columns that don't exist" failure later on.
+    # Note: min_n_routes/min_max_route_years/min_mean_route_years are NOT
+    # evaluated in this branch and would not help even if they were --
+    # n_routes_ever is 0 in every stratum, so `n_routes_ever >= min_n_routes`
+    # fails for any min_n_routes >= 1. The only fix is widening
+    # min_year/max_year, or the species simply doesn't occur in this
+    # stratification.
+    stop("No routes recorded a non-zero count of this species between ",
+         min_year, " and ", max_year, ".\nThis cannot be fixed by ",
+         "adjusting `min_n_routes`, `min_max_route_years`, or ",
+         "`min_mean_route_years` -- there are zero qualifying routes ",
+         "regardless of threshold. Try widening `min_year`/`max_year`, ",
+         "or confirm the species is expected in this stratification.\n",
+         call. = FALSE)
   }
 
   obs_final <- obs_ever %>%
